@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/Trey2k/ocSocket"
+	"github.com/ocScripts/ocSocket"
 )
 
 type MessageEvent struct {
@@ -49,7 +49,7 @@ func (server *sServer) clientCheckup() {
 
 func main() {
 	server := newServer()
-	server.Socket = ocSocket.NewSocket(":42067")
+	server.Socket = ocSocket.NewSocket(":42069")
 	go server.Socket.Open()
 	for {
 		event := <-server.Socket.EventChan

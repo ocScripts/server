@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Trey2k/ocSocket"
+	"github.com/ocScripts/ocSocket"
 )
 
 type RegisterInfo struct {

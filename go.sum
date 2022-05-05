@@ -1,2 +1,4 @@
 github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/ocScripts/ocSocket v0.0.0-20220505181134-847c6ba23728 h1:BDvqEqz4K8unU+Da11Y7Y3BAf5JsLQ8VXN5Ew5PRdqY=
+github.com/ocScripts/ocSocket v0.0.0-20220505181134-847c6ba23728/go.mod h1:FXOGDvrS8CMNNOe5RmqSIclO4UUagocxPzXXasazAP0=

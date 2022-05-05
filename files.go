@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/Trey2k/ocSocket"
+	"github.com/ocScripts/ocSocket"
 )
 
 type newFileData struct {

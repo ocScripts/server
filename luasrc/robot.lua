@@ -6,8 +6,8 @@ local crc32 = require("crc32")
 local goSocket = require("gosocket")
 
 local Config = {
-    Host="192.168.1.210",
-    Port=42067,
+    Host="172.0.0.1",
+    Port=42069,
 }
 
 function main()
