@@ -1,41 +1,63 @@
 local component = require("component")
+local computer = require("computer")
 local event = require("event")
 local filesystem = require("filesystem")
-local computer = require("computer")
+
 local crc32 = require("crc32")
 local goSocket = require("gosocket")
+local json = require("json-api")
 
+---Default configuration table
 local Config = {
-    Host="172.0.0.1",
-    Port=42069,
+    Host="127.0.0.1",
+    Port=56552,
+    Type="robot",
 }
 
 function main()
-    local conn = goSocket.newSocket(Config.Host, Config.Port, false)
+    local f = io.open("config.json", "r")
+    if f == nil then
+        local b = json.encode(Config)
+        if b == nil then
+            return "CORE: Failed to marshal configuration " + Config
+        end
 
+        local f = io.open("config.json", "w")
+        if f == nil then
+            return "CORE: Failed to open file " + fileName
+        end
+
+        f:write(b)
+
+        f:close()
+    else
+        Config = json.decode(f:read("*a"))
+    end
+
+
+    ::RetryConnect::
+    local conn = goSocket.newSocket(Config.Host, Config.Port, true)
+    ---conn.registerEventHandler("getDisplayResolution", getDisplayResolution)
     conn.registerEventHandler("load", load)
-    conn.registerEventHandler("newFile", newFile)
+    conn.registerClientCallback("newFile", newFile)
     conn.registerEventHandler("reboot", reboot)
 
-    conn.open()
-    while not conn.isReady() do
-        os.sleep(0.1) ---Required
+    local err = conn.open()
+    if err ~= nil then
+        print("Error while connecting '"..err.."'. Retrying...")
+        goto RetryConnect
     end
     
     local registerData = {}
 
     registerData.Files = {}
-    registerData.Type = component.isAvailable("robot") and "robot" or "computer"
+    registerData.Type = Config.Type
     registerData.Components = {}
 
     ---Get hashes of all scripts
 
     for file in filesystem.list("/home/") do
         local fileName = file
-
-        if string.sub(fileName, 1, #".") == "." then
-            goto continue
-        end
 
         local f = io.open("/home/"..fileName, "r")
         if f == nil then
@@ -55,8 +77,6 @@ function main()
         registerData.Files[fileName] = hash
 
         f:close()
-
-        ::continue::
     end
 
     ---Populate our component list
@@ -74,28 +94,33 @@ function main()
     print("Exiting")
 end
 
+---Gets the current display resolution
+---function getDisplayResolution()
+---    return gpu.getViewport() --TODO:
+---end
+
 function load(data)
     require(data.Module)
 end
 
-function newFile(data) --- err string
+function newFile(data, cb) --- err string
     print("Making new file")
     local fileName = data.Name
     local fileContent = data.Content
-
+    print(fileName)
     local err = filesystem.remove("/home/" .. fileName)
     if err ~= true then
-        return "CORE: Failed to delete file " + fileName
+        cb({Err="CORE: Failed to delete file " + fileName})
     end
     
 	local f = io.open(fileName, "w")
     if f == nil then
-        return "CORE: Failed to open file " + fileName
+        cb({Err="CORE: Failed to open file " + fileName})
     end
-
     f:write(fileContent)
 
     f:close()
+    cb({Err=""})
 end
 
 function reboot(data)

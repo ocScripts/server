@@ -22,6 +22,11 @@ goSocket.newSocket = function(host, port, debug)
     self.thred=nil
     self.uuid=""
     self.ready=false
+
+    self.serverCallbacks = {}
+    self.clientCallbacks = {}
+    self.callbackID = 0
+
     if debug ~= nil then
         self.debug=debug
     end
@@ -36,12 +41,36 @@ goSocket.newSocket = function(host, port, debug)
         self.eventHandlers[name]=handler
     end
 
-    self.registerEventHandler("uuid", function(data)
-        self.uuid = data.UUID
-        self.ready = true
-        
-        if self.debug then
-            print("INFO: Got UUID \""..uuid.."\".")
+    self.triggerServerCallback = function(name, data, callback)
+        self.serverCallbacks[self.callbackID] = callback
+        err = self.sendEvent("triggerServerCallback", {Name=name, ID=self.callbackID, Data = json.encode(data)})
+
+        if err then 
+            return err
+        end
+
+        if self.callbackID < 65535 then
+            self.callbackID = self.callbackID + 1
+        else
+            self.callbackID = 0
+        end
+    end
+
+    self.registerClientCallback = function(name, cb)
+        self.clientCallbacks[name]=cb
+    end
+
+    self.registerEventHandler("serverCallback", function(data)
+        self.serverCallbacks[data.ID](json.decode(data.Data))
+        self.serverCallbacks[data.ID]=nil
+    end)
+
+    self.registerEventHandler("triggerClientCallback", function(data)
+        if self.clientCallbacks[data.Name] then
+            self.clientCallbacks[data.Name](json.decode(data.Data), function(data2) 
+                print("TESTINGINING")
+                self.sendEvent("clientCallback", {ID=data.ID, Name=data.Name, Data=json.encode(data2)})
+            end)
         end
     end)
 
@@ -58,7 +87,10 @@ goSocket.newSocket = function(host, port, debug)
             print("INFO: Sending message \""..msg.."\".")
         end
 
-        self.conn:write(msg)
+        sucsess, err = self.conn:write(msg)
+        if not sucsess then
+            return err
+        end
     end
 
     self.readSocket = function()
@@ -67,7 +99,11 @@ goSocket.newSocket = function(host, port, debug)
             event.cancel(self.timer)
         end
 
-        local message = self.conn:read()
+        local message, err = self.conn:read()
+        if not message then
+            return err
+        end
+
         if self.debug then
             print("INFO: Recived message \""..message.."\".")
         end
@@ -88,13 +124,30 @@ goSocket.newSocket = function(host, port, debug)
 
         self.conn, reason = internet.open(host, port)
         if not self.conn then
-            io.stderr:write(reason .. "\n")
-            return
+            return reason
         end
 
         self.conn:setTimeout(0.5)
         self.connected=true
         self.timer = event.timer(0.5, self.readSocket, math.huge)
+
+        local err = self.triggerServerCallback ("getUUID", {}, function(info)
+            self.uuid = info.UUID
+            self.ready = true
+        end)
+        if err then
+            return err
+        end
+
+        local attempts = 0
+        while self.uuid == "" do 
+            os.sleep(0.1)
+            attempts = attempts + 1
+            if attempts == 50 then
+                self.close()
+                return "unable to establish connection"
+            end
+        end
     end
 
     self.close = function()

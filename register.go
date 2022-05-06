@@ -5,9 +5,9 @@ import (
 )
 
 type RegisterInfo struct {
-	Files     map[string]uint32
-	Type      string
-	Componets []string
+	Files      map[string]uint32
+	Type       string
+	Components []string
 }
 
 func (server *sServer) registerHandler(event *ocSocket.Event) error {
@@ -20,9 +20,9 @@ func (server *sServer) registerHandler(event *ocSocket.Event) error {
 	}
 
 	server.ClientInfo[client.UUID] = sClientInfo{
-		Files:     data.Files,
-		Type:      data.Type,
-		Componets: data.Componets,
+		Files:      data.Files,
+		Type:       data.Type,
+		Components: data.Components,
 	}
 
 	return server.checkFiles(event.Client, data.Files)
